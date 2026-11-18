@@ -1,0 +1,45 @@
+.checkout-form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 34px;
+}
+
+.checkout-form h3 {
+  font-size: 1.9rem;
+  margin-bottom: 22px;
+}
+
+.place-btn {
+  margin-top: 26px;
+}
+
+.fallback-box {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px dashed var(--red);
+  background: rgba(225, 11, 23, 0.07);
+}
+
+.fallback-box p {
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+}
+
+.secure-note {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.secure-note a {
+  color: var(--white);
+  font-weight: 700;
+  border-bottom: 1px solid var(--red);
+}
+
+@media (max-width: 560px) {
+  .checkout-form {
+    padding: 22px 16px;
+  }
+}

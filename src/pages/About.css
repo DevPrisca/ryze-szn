@@ -1,0 +1,156 @@
+.about-intro {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.about-kite {
+  display: flex;
+  justify-content: center;
+  padding: 50px;
+  background: radial-gradient(circle, rgba(225, 11, 23, 0.2), transparent 68%);
+  animation: aboutFloat 6s ease-in-out infinite;
+  filter: drop-shadow(0 20px 40px rgba(225, 11, 23, 0.4));
+}
+
+@keyframes aboutFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(5deg);
+  }
+}
+
+.about-intro h2 {
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  margin-bottom: 18px;
+}
+
+.about-intro p {
+  color: #c4c4c4;
+  margin-bottom: 16px;
+  font-size: 1.05rem;
+  max-width: 580px;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.value-card {
+  height: 100%;
+  padding: 28px 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  transition: transform 0.3s, border-color 0.3s;
+}
+
+.value-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--red);
+}
+
+.value-card span {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--red);
+  margin-bottom: 10px;
+}
+
+.value-card h3 {
+  font-size: 1.7rem;
+  margin-bottom: 10px;
+}
+
+.value-card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* ===== Timeline ===== */
+.timeline {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-left: 38px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: linear-gradient(var(--red), #3a0508);
+}
+
+.time-item {
+  position: relative;
+  margin-bottom: 38px;
+}
+
+.time-item::before {
+  content: "";
+  position: absolute;
+  left: -38px;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+  background: var(--black);
+  border: 3px solid var(--red);
+  transform: rotate(45deg);
+}
+
+.time-item strong {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.time-item p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.about-cta {
+  text-align: center;
+  padding: 80px 0 110px;
+  background: radial-gradient(circle at 50% 50%, rgba(225, 11, 23, 0.2), transparent 62%);
+}
+
+.about-cta h2 {
+  font-size: clamp(2.8rem, 8vw, 6rem);
+  margin-bottom: 26px;
+}
+
+@media (max-width: 1000px) {
+  .values-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .about-intro {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .about-kite {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .values-grid {
+    grid-template-columns: 1fr;
+  }
+}

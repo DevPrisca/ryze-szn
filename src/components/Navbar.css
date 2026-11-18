@@ -1,0 +1,188 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+
+/* The blurred background lives on a pseudo-element. If the blur were on .navbar itself,
+   the full-screen mobile menu would be trapped inside the 76px bar. */
+.navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(8, 8, 8, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: background 0.3s;
+}
+
+.navbar-scrolled::before {
+  background: rgba(8, 8, 8, 0.95);
+}
+
+.navbar-scrolled {
+  border-bottom-color: var(--line);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--nav-height);
+  transition: height 0.3s;
+}
+
+.navbar-scrolled .nav-inner {
+  height: 64px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 38px;
+}
+
+.nav-links a {
+  position: relative;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 6px 0;
+  color: #cfcfcf;
+  transition: color 0.2s;
+}
+
+/* red underline that grows from the left */
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--red);
+  transition: width 0.3s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--white);
+}
+
+.nav-links a:hover::after,
+.nav-links a.active::after {
+  width: 100%;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cart-link {
+  position: relative;
+  display: flex;
+  padding: 6px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.cart-link:hover {
+  color: var(--red-bright);
+  transform: scale(1.08);
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: badgePop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.6);
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.burger {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.burger span {
+  width: 28px;
+  height: 2px;
+  background: var(--white);
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.burger-active span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.burger-active span:nth-child(2) {
+  opacity: 0;
+}
+
+.burger-active span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* ===== Tablet and phone: full-screen menu ===== */
+@media (max-width: 900px) {
+  .burger {
+    display: flex;
+  }
+
+  .nav-links {
+    position: fixed;
+    inset: 0;
+    top: 0;
+    padding-top: var(--nav-height);
+    background: var(--black);
+    flex-direction: column;
+    justify-content: center;
+    gap: 26px;
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 0.45s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s 0.45s;
+    z-index: -1;
+  }
+
+  .nav-links.nav-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.45s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s;
+  }
+
+  .nav-links a {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 400;
+    letter-spacing: 4px;
+  }
+}

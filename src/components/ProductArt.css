@@ -1,0 +1,45 @@
+.art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 38%, #3a3a3a 0%, #181818 70%);
+  overflow: hidden;
+}
+
+.art-glow {
+  position: absolute;
+  width: 55%;
+  height: 55%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(225, 11, 23, 0.28), transparent 70%);
+  filter: blur(14px);
+  transition: transform 0.6s ease, opacity 0.6s ease;
+  opacity: 0.6;
+}
+
+.art-svg {
+  position: relative;
+  width: 78%;
+  height: auto;
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.6));
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.art-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* when the card (or any parent with .art-hover) is hovered */
+.art-hover:hover .art-svg {
+  transform: scale(1.07) rotate(-2deg);
+}
+
+.art-hover:hover .art-glow {
+  transform: scale(1.4);
+  opacity: 1;
+}

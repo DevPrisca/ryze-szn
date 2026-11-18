@@ -1,0 +1,38 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-word {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 6px;
+  line-height: 1;
+  color: var(--white);
+}
+
+.kite-mark {
+  object-fit: contain;
+  transition: transform 0.4s ease;
+  transform-origin: 50% 40%;
+}
+
+.logo:hover .kite-mark {
+  transform: rotate(14deg) translateY(-3px);
+}
+
+.kite-tail {
+  animation: tailWave 2.4s ease-in-out infinite;
+  transform-origin: 32px 49px;
+}
+
+@keyframes tailWave {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}

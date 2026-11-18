@@ -1,0 +1,32 @@
+.notfound {
+  text-align: center;
+  padding-top: 90px;
+  padding-bottom: 110px;
+}
+
+.lost-kite {
+  display: flex;
+  justify-content: center;
+  animation: lost 4s ease-in-out infinite;
+}
+
+@keyframes lost {
+  0%,
+  100% {
+    transform: translate(-30px, 0) rotate(-18deg);
+  }
+  50% {
+    transform: translate(30px, -22px) rotate(18deg);
+  }
+}
+
+.notfound h1 {
+  font-size: clamp(6rem, 22vw, 12rem);
+  color: var(--red);
+  line-height: 1;
+}
+
+.notfound p {
+  color: var(--muted);
+  margin-bottom: 26px;
+}

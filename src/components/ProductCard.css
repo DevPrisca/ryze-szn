@@ -1,0 +1,81 @@
+.product-card {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--red);
+  box-shadow: 0 20px 40px rgba(225, 11, 23, 0.16);
+}
+
+.card-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  background: var(--red);
+  color: var(--white);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+}
+
+.card-view {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background: var(--white);
+  color: var(--black);
+  text-align: center;
+  font-family: var(--font-display);
+  letter-spacing: 3px;
+  font-size: 1.05rem;
+  padding: 10px 0;
+  transform: translateY(100%);
+  transition: transform 0.35s ease;
+}
+
+.product-card:hover .card-view {
+  transform: translateY(0);
+}
+
+.card-info {
+  padding: 18px 18px 22px;
+}
+
+.card-info h3 {
+  font-size: 1.45rem;
+  margin-bottom: 4px;
+}
+
+.card-color {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-bottom: 10px;
+}
+
+.card-price {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 1px;
+  color: var(--red-bright);
+}
+
+/* On touch screens there is no hover, so keep the bar hidden */
+@media (hover: none) {
+  .card-view {
+    display: none;
+  }
+}
