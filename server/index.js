@@ -322,15 +322,6 @@ app.post("/api/orders", async function (req, res) {
   }
 
   res.json({ ok: true, emailSent: ownerSent, order: order });
-  // Email the customer a confirmation (only if they gave an email)
-  if (email !== "") {
-    
-    });
-  }
-
-  res.json({ ok: true, emailSent: ownerSent, order: order });
-});
-
 app.post("/api/contact", async function (req, res) {
   if (tooManyRequests(req.ip)) {
     return res.status(429).json({ ok: false, message: "Too many requests. Please wait a minute." });
