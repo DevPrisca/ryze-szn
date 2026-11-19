@@ -15,7 +15,7 @@ const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: "500kb" }));
 
 // ------------------------------------------------------------------
 //  Gmail setup (works only when GMAIL_USER and GMAIL_APP_PASSWORD are set)
@@ -277,15 +277,7 @@ app.post("/api/orders", async function (req, res) {
     console.error("Could not save order:", error.message);
   }
 
-  console.log("New order " + order.id + " - " + formatPrice(order.total) + " - " + order.name + " (" + order.phone + ")");
-
-  // Email the owner (this is the notification to your Gmail)
-  const notificationRecipients = (
-    process.env.ORDER_NOTIFICATION_EMAILS ||
-    process.env.OWNER_EMAIL ||
-    process.env.GMAIL_USER ||
-    ""
-  )
+    const notificationRecipients = (process.env.ORDER_NOTIFICATION_EMAILS || process.env.OWNER_EMAIL || process.env.GMAIL_USER || "")
     .split(",")
     .map(function (recipient) {
       return recipient.trim();
@@ -298,10 +290,10 @@ app.post("/api/orders", async function (req, res) {
     console.error("Order email failed: no notification recipients configured.");
   }
 
-  const ownerSent =
-    notificationRecipients.length > 0 &&
-    (
-      await Promise.all(
+  let ownerSent = false;
+  try {
+    if (notificationRecipients.length > 0) {
+      const results = await Promise.all(
         notificationRecipients.map(function (recipient) {
           return sendEmail({
             to: recipient,
@@ -310,17 +302,29 @@ app.post("/api/orders", async function (req, res) {
             replyTo: email || undefined,
           });
         })
-      )
-    ).every(function (sent) {
-      return sent;
-    });
+      );
+      ownerSent = results.every(function (sent) { return sent; });
+    }
+  } catch (e) {
+    console.error("Owner email error:", e.message);
+  }
 
+  try {
+    if (email !== "") {
+      await sendEmail({
+        to: email,
+        subject: "Your RYZE order " + order.id + " is confirmed",
+        html: customerOrderEmail(order),
+      });
+    }
+  } catch (e) {
+    console.error("Customer email error:", e.message);
+  }
+
+  res.json({ ok: true, emailSent: ownerSent, order: order });
   // Email the customer a confirmation (only if they gave an email)
   if (email !== "") {
-    await sendEmail({
-      to: email,
-      subject: "Your RYZE order " + order.id + " is confirmed",
-      html: customerOrderEmail(order),
+    
     });
   }
 
