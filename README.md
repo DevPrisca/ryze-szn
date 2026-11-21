@@ -1,8 +1,8 @@
 # RYZE - clothing brand website
 
 React (Vite) front end + a small Node/Express server. Contact form messages and
-orders are sent through the API server. Gmail notifications require the server's
-Gmail settings below.
+orders are sent through the API server. Order notifications use the Resend API;
+the contact form can use Gmail SMTP.
 
 Pages: Home, Shop, Product, Cart, Checkout, Order Success, Lookbook, About, Contact, 404.
 
@@ -22,37 +22,27 @@ Open the address it prints (usually http://localhost:5173). `npm run dev` starts
 both the website and the order server together. If the default API port is busy,
 the dev script selects an available port and configures the website proxy to use it.
 
-## 2. Get Gmail notifications
+## 2. Order notifications with Resend
 
-Without this step, orders still work and are saved to `server/orders.json`,
-but no emails are sent. Order notifications are saved to a local queue and
-retried automatically if Gmail or the internet is temporarily unavailable.
-Pending notifications are retried when the server starts again.
+Order notifications are sent from `onboarding@resend.dev` to
+`makindepriscilla5@gmail.com`. They include the order ID and total, and are
+saved to a local queue so temporary Resend or network errors can be retried.
 
-1. Go to your Google Account > **Security** and turn on **2-Step Verification**.
-2. Search "**App passwords**" in your Google Account, create one named "RYZE",
-   and copy the 16-letter password.
-3. In the project folder, create a file named `.env`.
-4. Fill in `.env`:
+1. Create a Resend API key in your Resend account.
+2. Add it to the project `.env` file:
 
 ```
-GMAIL_USER=yourname@gmail.com
-GMAIL_APP_PASSWORD=abcd efgh ijkl mnop
-OWNER_EMAIL=yourname@gmail.com
-ORDER_NOTIFICATION_EMAILS=yourname@gmail.com,second@gmail.com
+RESEND_API_KEY=re_your_api_key
 ```
 
-5. Stop and restart `npm run dev`. The terminal should say
-   `Gmail notifications: ON`.
-6. Submit a test contact message or place a test order. You should receive an
-   contact notification at `OWNER_EMAIL` (or `GMAIL_USER` if `OWNER_EMAIL` is
-   not set), and order notifications at every address in
-   `ORDER_NOTIFICATION_EMAILS`. If that setting is omitted, orders use
-   `OWNER_EMAIL` or `GMAIL_USER`. For order notifications, the checkout confirms
-   that the email is queued; check the server terminal and Gmail's Spam folder
-   if it does not arrive. Customers who enter an email at checkout also get a
-   confirmation email. The server must be running and have internet access to
-   deliver mail; pending order emails retry after the connection is restored.
+3. Add `RESEND_API_KEY` to the Render service's private environment variables
+   as well. Never commit `.env` or paste its value into chat.
+4. Restart the server. It should log `Resend order notifications: ON`.
+
+The server must be running and have internet access to deliver queued messages.
+Pending order notifications retry after the connection is restored. The contact
+form still uses Gmail SMTP; set `GMAIL_USER` and `GMAIL_APP_PASSWORD` if you
+want contact form messages sent by email.
 
 Never share the `.env` file or put it on GitHub (it is already in `.gitignore`).
 
@@ -79,8 +69,9 @@ survive restarts. Review Render's current charges before creating the service.
 1. Push this repository to GitHub and connect it to Render.
 2. In Render, choose **New > Blueprint** and select this repository. Review the
    service and disk costs before confirming creation.
-3. Enter `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `OWNER_EMAIL`, and
-   `ORDER_NOTIFICATION_EMAILS` in Render's private environment-variable form.
+3. Enter `RESEND_API_KEY` in Render's private environment-variable form. Add
+   `GMAIL_USER` and `GMAIL_APP_PASSWORD` only if you want email for contact
+   form messages.
    Never commit `.env` or paste its values into chat.
 4. After the deploy succeeds, open the service's `onrender.com` URL and check
    `/api/health`.
