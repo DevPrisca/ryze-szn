@@ -124,7 +124,7 @@ let apiAlreadyRunning = false;
 const existingApi = await isPortAvailable(startPort) ? null : await getExistingRyzeApi(startPort);
 
 if (existingApi !== null) {
-  if (existingApi.emailTransport !== "gmail-smtp-465") {
+  if (existingApi.emailTransport !== "gmail-smtp-587-starttls") {
     throw new Error("An older RYZE API is running on port " + startPort +
       ". Stop that server, then run npm run dev again to load the updated Gmail SMTP settings.");
   }

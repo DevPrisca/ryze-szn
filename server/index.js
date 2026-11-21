@@ -32,8 +32,9 @@ const gmailAppPassword = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "
 if (gmailUser && gmailAppPassword.length === 16 && isValidEmail(ADMIN_EMAIL)) {
   transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
@@ -366,7 +367,7 @@ app.get("/api/health", function (req, res) {
   res.json({
     ok: true,
     emailEnabled: transporter !== null,
-    emailTransport: "gmail-smtp-465",
+    emailTransport: "gmail-smtp-587-starttls",
     pendingEmailNotifications: notificationQueue.length,
   });
 });
