@@ -48,7 +48,7 @@ ADMIN_EMAIL=makindepriscilla5@gmail.com
    service's private environment variables too. Restart the server; it should
    log `Gmail order notifications: ON`.
 
-Customers provide an email address as part of their order contact details.
+Customers must provide an email address to receive their order confirmation.
 
 Never share the `.env` file or put it on GitHub (it is already in `.gitignore`).
 

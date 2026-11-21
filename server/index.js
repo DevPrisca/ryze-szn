@@ -165,7 +165,9 @@ async function processNotificationQueue() {
 
   const job = notificationQueue[0];
   const isOwnerOrderEmail = job.subject.indexOf("New RYZE order ") === 0;
-  const isCustomerOrderEmail = job.subject.indexOf("We received your RYZE order ") === 0;
+  const isCustomerOrderEmail =
+    job.subject.indexOf("We received your RYZE order ") === 0 ||
+    job.subject.indexOf("Thank you for your order from RYZE - Order #") === 0;
   if (!isOwnerOrderEmail && !isCustomerOrderEmail) {
     notificationQueue.shift();
     try {
@@ -343,7 +345,7 @@ function customerOrderEmail(order) {
   const body =
     "<p>Hi " + escapeHtml(order.name) + ",</p>" +
     "<p>Thank you for shopping with RYZE.</p>" +
-    "<p>We have received your order. We are preparing it now and we will update you when it ships.</p>" +
+    "<p>We have received your order. We will contact you to confirm it.</p>" +
     "<h3>Order Details</h3>" +
     '<p style="line-height:1.7;font-size:14px">' +
     "<b>Order number:</b> #" + escapeHtml(order.id) + "<br>" +
@@ -354,7 +356,7 @@ function customerOrderEmail(order) {
     escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
     "<p>Thank you for supporting 3 brothers building something real.<br>Team RYZE</p>";
 
-  return emailShell("We received your RYZE order ✅", body);
+  return emailShell("We received your RYZE order", body);
 }
 
 // ------------------------------------------------------------------
@@ -467,7 +469,7 @@ app.post("/api/orders", async function (req, res) {
   const customerNotification = {
     recipient: "customer",
     to: email,
-    subject: "We received your RYZE order ✅",
+    subject: "Thank you for your order from RYZE - Order #" + order.id,
     html: customerOrderEmail(order),
     replyTo: BRAND.email,
   };
