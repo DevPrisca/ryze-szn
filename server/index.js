@@ -346,19 +346,15 @@ function ownerOrderEmail(order) {
 function customerOrderEmail(order) {
   const body =
     "<p>Hi " + escapeHtml(order.name) + ",</p>" +
-    "<p>Thank you for your order from RYZE.</p>" +
-    "<p>We will contact you to confirm your order.</p>" +
+    "<p>Thank you for shopping with RYZE.</p>" +
+    "<p>We have received your order. We are preparing it now and we will update you when it ships.</p>" +
     "<h3>Order Details</h3>" +
-    '<p style="line-height:1.7;font-size:14px">' +
-    "<b>Order number:</b> #" + escapeHtml(order.id) + "<br>" +
-    "<b>Phone number:</b> " + escapeHtml(order.phone) + "<br>" +
-    "<b>Payment method:</b> " + escapeHtml(order.payment) + "</p>" +
     itemsTable(order) +
     '<p style="margin-top:14px"><b>Delivery address:</b> ' +
     escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
-    "<p>Thank you for choosing RYZE.<br>Team RYZE</p>";
+    "<p>Thank you for supporting 3 brothers building something real.<br>Team RYZE</p>";
 
-  return emailShell("Thank you for your order from RYZE", body);
+  return emailShell("We received your RYZE order ✅", body);
 }
 
 // ------------------------------------------------------------------
@@ -475,7 +471,7 @@ app.post("/api/orders", async function (req, res) {
   }];
   notificationEmails.push({
     to: email,
-    subject: "Thank you for your order from RYZE - Order #" + order.id,
+    subject: "We received your RYZE order ✅",
     html: customerOrderEmail(order),
     replyTo: BRAND.email,
   });
