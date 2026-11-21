@@ -19,7 +19,7 @@ const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: "500kb" }));
 
 // ------------------------------------------------------------------
 //  Gmail setup (works only when GMAIL_USER and GMAIL_APP_PASSWORD are set)
@@ -286,19 +286,6 @@ function ownerOrderEmail(order) {
   return emailShell("New order received", body);
 }
 
-function customerOrderEmail(order) {
-  const body =
-    '<p style="font-size:15px;line-height:1.6">Hi ' + escapeHtml(order.name.split(" ")[0]) +
-    ", thank you for your order! We have received it and will call you on <b>" +
-    escapeHtml(order.phone) + "</b> to confirm delivery.</p>" +
-    '<p style="font-size:13px;color:#8a8a8a">Order number: <b style="color:#f4f1ee">' + order.id + "</b></p>" +
-    itemsTable(order) +
-    '<p style="font-size:14px;margin-top:18px">Delivering to: ' + escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
-    '<p style="font-size:14px">Questions? WhatsApp or call us on ' + BRAND.phone + ".</p>";
-
-  return emailShell("Your order is confirmed", body);
-}
-
 // ------------------------------------------------------------------
 //  Routes
 // ------------------------------------------------------------------
@@ -399,7 +386,6 @@ app.post("/api/orders", async function (req, res) {
 
   console.log("New order " + order.id + " - " + formatPrice(order.total) + " - " + order.name + " (" + order.phone + ")");
 
-  // Email the owner (this is the notification to your Gmail)
   const notificationRecipients = (
     process.env.ORDER_NOTIFICATION_EMAILS ||
     process.env.OWNER_EMAIL ||
@@ -428,14 +414,6 @@ app.post("/api/orders", async function (req, res) {
     };
   });
 
-  if (email !== "") {
-    notificationEmails.push({
-      to: email,
-      subject: "Your RYZE order " + order.id + " is confirmed",
-      html: customerOrderEmail(order),
-    });
-  }
-
   let emailQueued = false;
   try {
     enqueueEmails(notificationEmails);
@@ -446,7 +424,6 @@ app.post("/api/orders", async function (req, res) {
 
   res.json({ ok: true, emailQueued: emailQueued, order: order });
 });
-
 app.post("/api/contact", async function (req, res) {
   if (tooManyRequests(req.ip)) {
     return res.status(429).json({ ok: false, message: "Too many requests. Please wait a minute." });
