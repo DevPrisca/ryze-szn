@@ -71,9 +71,13 @@ async function sendEmail(options, recipientLabel) {
   }
 
   try {
+    const message = { ...options };
+    if (typeof message.html === "string" && !message.text) {
+      message.text = htmlToPlainText(message.html);
+    }
     await transporter.sendMail({
       from: '"' + BRAND.name + '" <' + gmailUser + ">",
-      ...options,
+      ...message,
     });
     console.log("Email sent to " + (recipientLabel || options.to) + ": " + options.to);
     return true;
@@ -81,6 +85,22 @@ async function sendEmail(options, recipientLabel) {
     console.error("Email failed: " + (recipientLabel || options.to) + ": " + error.message, error);
     return false;
   }
+}
+
+function htmlToPlainText(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|h[1-6]|tr|table)>/gi, "\n")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function persistNotificationQueue() {
