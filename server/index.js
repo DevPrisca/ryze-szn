@@ -4,12 +4,16 @@ import cors from "cors";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { products } from "../src/data/products.js";
 import { BRAND, formatPrice } from "../src/config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ORDERS_FILE = path.join(__dirname, "orders.json");
+const DATA_DIRECTORY = path.resolve(process.env.DATA_DIR || __dirname);
+fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
+const ORDERS_FILE = path.join(DATA_DIRECTORY, "orders.json");
+const NOTIFICATION_QUEUE_FILE = path.join(DATA_DIRECTORY, "mail-queue.json");
 const DIST_FOLDER = path.join(__dirname, "..", "dist");
 const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
@@ -25,6 +29,9 @@ let transporter = null;
 if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
   transporter = nodemailer.createTransport({
     service: "gmail",
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD.replace(/\s/g, ""),
@@ -35,9 +42,17 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
   console.log("Gmail notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
 }
 
+let notificationQueue = [];
+if (fs.existsSync(NOTIFICATION_QUEUE_FILE)) {
+  const savedQueue = JSON.parse(fs.readFileSync(NOTIFICATION_QUEUE_FILE, "utf8"));
+  if (!Array.isArray(savedQueue)) {
+    throw new Error("The Gmail notification queue file must contain an array.");
+  }
+  notificationQueue = savedQueue;
+}
+
 async function sendEmail(options) {
   if (transporter === null) {
-    console.log("[email skipped] To: " + options.to + " | Subject: " + options.subject);
     return false;
   }
 
@@ -51,6 +66,103 @@ async function sendEmail(options) {
     console.error("Email failed:", error.message);
     return false;
   }
+}
+
+function persistNotificationQueue() {
+  const temporaryFile = NOTIFICATION_QUEUE_FILE + "." + process.pid + ".tmp";
+  fs.writeFileSync(temporaryFile, JSON.stringify(notificationQueue, null, 2), "utf8");
+  fs.renameSync(temporaryFile, NOTIFICATION_QUEUE_FILE);
+}
+
+let notificationTimer = null;
+let processingNotifications = false;
+
+function scheduleNotificationProcessing(delay) {
+  if (notificationTimer !== null) {
+    return;
+  }
+  notificationTimer = setTimeout(function () {
+    notificationTimer = null;
+    processNotificationQueue().catch(function (error) {
+      console.error("Gmail notification queue failed:", error.message);
+      scheduleNotificationProcessing(60000);
+    });
+  }, delay);
+  notificationTimer.unref();
+}
+
+function enqueueEmails(emails) {
+  if (emails.length === 0) {
+    return;
+  }
+
+  const jobs = emails.map(function (email) {
+    return {
+      id: randomUUID(),
+      to: email.to,
+      subject: email.subject,
+      html: email.html,
+      replyTo: email.replyTo || null,
+      attempts: 0,
+      nextAttemptAt: Date.now(),
+    };
+  });
+
+  notificationQueue.push(...jobs);
+  try {
+    persistNotificationQueue();
+  } catch (error) {
+    notificationQueue.splice(notificationQueue.length - jobs.length, jobs.length);
+    throw error;
+  }
+  scheduleNotificationProcessing(0);
+}
+
+async function processNotificationQueue() {
+  if (processingNotifications || notificationQueue.length === 0) {
+    return;
+  }
+  if (transporter === null) {
+    scheduleNotificationProcessing(3600000);
+    return;
+  }
+
+  const job = notificationQueue[0];
+  const delay = job.nextAttemptAt - Date.now();
+  if (delay > 0) {
+    scheduleNotificationProcessing(delay);
+    return;
+  }
+
+  processingNotifications = true;
+  try {
+    const sent = await sendEmail({
+      to: job.to,
+      subject: job.subject,
+      html: job.html,
+      replyTo: job.replyTo || undefined,
+    });
+
+    if (sent) {
+      notificationQueue.shift();
+      try {
+        persistNotificationQueue();
+      } catch (error) {
+        notificationQueue.unshift(job);
+        throw error;
+      }
+      console.log("Gmail notification sent: " + job.subject);
+    } else {
+      job.attempts += 1;
+      job.nextAttemptAt = Date.now() + Math.min(60000 * (2 ** Math.min(job.attempts - 1, 6)), 3600000);
+      persistNotificationQueue();
+      console.error("Gmail notification queued for retry: " + job.subject);
+    }
+  } finally {
+    processingNotifications = false;
+  }
+
+  scheduleNotificationProcessing(0);
 }
 
 // ------------------------------------------------------------------
@@ -109,7 +221,10 @@ function saveOrder(order) {
       orders = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"));
     }
   } catch (error) {
-    orders = [];
+    throw new Error("Could not read the saved orders file: " + error.message);
+  }
+  if (!Array.isArray(orders)) {
+    throw new Error("The saved orders file must contain an array.");
   }
   orders.push(order);
   fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
@@ -188,7 +303,11 @@ function customerOrderEmail(order) {
 //  Routes
 // ------------------------------------------------------------------
 app.get("/api/health", function (req, res) {
-  res.json({ ok: true, emailEnabled: transporter !== null });
+  res.json({
+    ok: true,
+    emailEnabled: transporter !== null,
+    pendingEmailNotifications: notificationQueue.length,
+  });
 });
 
 app.post("/api/orders", async function (req, res) {
@@ -275,6 +394,7 @@ app.post("/api/orders", async function (req, res) {
     saveOrder(order);
   } catch (error) {
     console.error("Could not save order:", error.message);
+    return res.status(500).json({ ok: false, message: "We could not save your order. Please try again." });
   }
 
   console.log("New order " + order.id + " - " + formatPrice(order.total) + " - " + order.name + " (" + order.phone + ")");
@@ -284,6 +404,7 @@ app.post("/api/orders", async function (req, res) {
     process.env.ORDER_NOTIFICATION_EMAILS ||
     process.env.OWNER_EMAIL ||
     process.env.GMAIL_USER ||
+    BRAND.email ||
     ""
   )
     .split(",")
@@ -298,33 +419,32 @@ app.post("/api/orders", async function (req, res) {
     console.error("Order email failed: no notification recipients configured.");
   }
 
-  const ownerSent =
-    notificationRecipients.length > 0 &&
-    (
-      await Promise.all(
-        notificationRecipients.map(function (recipient) {
-          return sendEmail({
-            to: recipient,
-            subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
-            html: ownerOrderEmail(order),
-            replyTo: email || undefined,
-          });
-        })
-      )
-    ).every(function (sent) {
-      return sent;
-    });
+  const notificationEmails = notificationRecipients.map(function (recipient) {
+    return {
+      to: recipient,
+      subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
+      html: ownerOrderEmail(order),
+      replyTo: email || undefined,
+    };
+  });
 
-  // Email the customer a confirmation (only if they gave an email)
   if (email !== "") {
-    await sendEmail({
+    notificationEmails.push({
       to: email,
       subject: "Your RYZE order " + order.id + " is confirmed",
       html: customerOrderEmail(order),
     });
   }
 
-  res.json({ ok: true, emailSent: ownerSent, order: order });
+  let emailQueued = false;
+  try {
+    enqueueEmails(notificationEmails);
+    emailQueued = notificationEmails.length > 0;
+  } catch (error) {
+    console.error("Could not queue order email:", error.message);
+  }
+
+  res.json({ ok: true, emailQueued: emailQueued, order: order });
 });
 
 app.post("/api/contact", async function (req, res) {
@@ -370,8 +490,13 @@ app.post("/api/contact", async function (req, res) {
 
   console.log("New message from " + name + " - " + subject);
 
+  const notificationEmail =
+    process.env.OWNER_EMAIL ||
+    process.env.GMAIL_USER ||
+    BRAND.email;
+
   const sent = await sendEmail({
-    to: process.env.OWNER_EMAIL || process.env.GMAIL_USER,
+    to: notificationEmail,
     subject: "RYZE website message: " + subject,
     html: html,
     replyTo: email || undefined,
@@ -390,6 +515,7 @@ if (fs.existsSync(DIST_FOLDER)) {
   });
 }
 
-app.listen(PORT, function () {
+app.listen(PORT, "0.0.0.0", function () {
   console.log("RYZE server running on http://localhost:" + PORT);
+  scheduleNotificationProcessing(0);
 });

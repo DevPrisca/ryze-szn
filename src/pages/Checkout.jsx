@@ -74,10 +74,10 @@ function Checkout() {
       }
 
       cart.clearCart();
-      if (result.emailSent) {
-        toast.showToast("Order placed. Gmail notification sent.", "success");
+      if (result.emailQueued) {
+        toast.showToast("Order placed. Gmail notification is queued and will retry automatically.", "success");
       } else {
-        toast.showToast("Order received, but the Gmail notification could not be sent.", "error");
+        toast.showToast("Order received, but the Gmail notification could not be queued. Please contact us.", "error");
       }
       navigate("/order-success", { state: { order: result.order } });
     } catch (error) {

@@ -2,3 +2,4 @@ node_modules
 dist
 .env
 server/orders.json
+server/mail-queue.json*
