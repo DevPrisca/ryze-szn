@@ -27,9 +27,11 @@ the dev script selects an available port and configures the website proxy to use
 Order notifications are sent through Resend to the owner at
 `makindepriscilla3@gmail.com` and to the customer email entered during checkout.
 The customer receives an order summary, total, and delivery address with the
-subject `We received your RYZE order ✅`. No customer verification or action link
-is required. Both messages are saved to a local queue so temporary Resend or
-network errors can be retried.
+subject `Thank you for your order from RYZE - Order #[order number]`. It includes
+the order number, items, sizes, quantities, total, delivery address, phone, and
+payment method, with no customer verification or action link required. Both
+messages are saved to a local queue so temporary Resend or network errors can
+be retried.
 
 1. Create a Resend API key and verify a domain in your Resend account.
 2. Set both values in the project `.env` file:
