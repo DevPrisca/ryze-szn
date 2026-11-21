@@ -26,22 +26,29 @@ app.use(express.json({ limit: "500kb" }));
 //  Gmail setup (works only when GMAIL_USER and GMAIL_APP_PASSWORD are set)
 // ------------------------------------------------------------------
 let transporter = null;
+const gmailAppPassword = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
 
-if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+if (process.env.GMAIL_USER && gmailAppPassword.length === 16) {
   transporter = nodemailer.createTransport({
-    service: "gmail",
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 30000,
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD.replace(/\s/g, ""),
+      pass: gmailAppPassword,
     },
   });
   console.log("Gmail order notifications: ON (" + process.env.GMAIL_USER + ")");
   console.log("Gmail contact notifications: ON (" + process.env.GMAIL_USER + ")");
 } else {
-  console.log("Gmail order notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
+  if (process.env.GMAIL_APP_PASSWORD && gmailAppPassword.length !== 16) {
+    console.error("GMAIL_APP_PASSWORD must be exactly 16 characters after removing whitespace.");
+  }
+  console.log("Gmail order notifications: OFF (add GMAIL_USER and a 16-character GMAIL_APP_PASSWORD to .env)");
   console.log("Gmail contact notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
 }
 
@@ -66,7 +73,7 @@ async function sendEmail(options) {
     });
     return true;
   } catch (error) {
-    console.error("Email failed:", error.message);
+    console.error("Gmail SMTP send failed:", error);
     return false;
   }
 }
@@ -314,6 +321,7 @@ app.get("/api/health", function (req, res) {
   res.json({
     ok: true,
     emailEnabled: transporter !== null,
+    emailTransport: "gmail-smtp-587",
     pendingEmailNotifications: notificationQueue.length,
   });
 });
@@ -510,7 +518,16 @@ if (fs.existsSync(DIST_FOLDER)) {
   });
 }
 
-app.listen(PORT, "0.0.0.0", function () {
+const apiServer = app.listen(PORT, "0.0.0.0", function () {
   console.log("RYZE server running on http://localhost:" + PORT);
   scheduleNotificationProcessing(0);
+});
+
+apiServer.on("error", function (error) {
+  if (error.code === "EADDRINUSE") {
+    console.error("API server failed with EADDRINUSE: port " + PORT + " is already in use.");
+  } else {
+    console.error("API server failed:", error);
+  }
+  process.exit(1);
 });
