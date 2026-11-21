@@ -140,7 +140,7 @@ async function processNotificationQueue() {
   processingNotifications = true;
   try {
     const sent = await sendEmail({
-      to: job.to,
+      to: job.subject.indexOf("New RYZE order ") === 0 ? ORDER_EMAIL_TO : job.to,
       subject: job.subject,
       html: job.html,
       replyTo: job.replyTo || undefined,
