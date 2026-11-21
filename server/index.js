@@ -14,7 +14,7 @@ const DATA_DIRECTORY = path.resolve(process.env.DATA_DIR || __dirname);
 fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
 const ORDERS_FILE = path.join(DATA_DIRECTORY, "orders.json");
 const NOTIFICATION_QUEUE_FILE = path.join(DATA_DIRECTORY, "mail-queue.json");
-const ORDER_EMAIL_TO = "makindepriscilla3@gmail.com";
+const ORDER_EMAIL_TO = BRAND.email;
 const DIST_FOLDER = path.join(__dirname, "..", "dist");
 const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 

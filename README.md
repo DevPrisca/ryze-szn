@@ -24,7 +24,7 @@ the dev script selects an available port and configures the website proxy to use
 ## 2. Gmail notifications
 
 Order notifications are sent with Gmail SMTP using Nodemailer. Each order
-queues a full notification to `makindepriscilla3@gmail.com` and a confirmation
+queues a full notification to `makindepriscilla5@gmail.com` and a confirmation
 to the email entered at checkout. Both include the order items, sizes,
 quantities, total, delivery address, phone number, and payment method. Messages
 are saved to a local queue and retried after temporary mail or network errors.
