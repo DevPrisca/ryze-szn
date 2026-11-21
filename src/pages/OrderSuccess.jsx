@@ -6,7 +6,6 @@ import "./OrderSuccess.css";
 
 function OrderSuccess() {
   const location = useLocation();
-  const emailResults = location.state && location.state.emailResults ? location.state.emailResults : {};
 
   let order = null;
   if (location.state && location.state.order) {
@@ -39,25 +38,6 @@ function OrderSuccess() {
     );
   }
 
-  let emailLine = null;
-  if (order.email) {
-    const customerStatus = emailResults.customerSent
-      ? "sent to " + order.email
-      : location.state.emailQueued
-        ? "failed; retry queued"
-        : "failed";
-    const ownerStatus = emailResults.ownerSent
-      ? "sent"
-      : location.state.emailQueued
-        ? "failed; retry queued"
-        : "failed";
-    emailLine = (
-      <p className="success-email">
-        {"Customer confirmation: " + customerStatus + ". Owner notification: " + ownerStatus + "."}
-      </p>
-    );
-  }
-
   let deliveryText = formatPrice(order.delivery);
   if (order.delivery === 0) {
     deliveryText = "FREE";
@@ -83,7 +63,6 @@ function OrderSuccess() {
       <p className="success-lead">
         Thank you, {order.name.split(" ")[0]}. We will call <b>{order.phone}</b> shortly to confirm your delivery.
       </p>
-      {emailLine}
       {paymentHelp}
 
       <div className="success-card">

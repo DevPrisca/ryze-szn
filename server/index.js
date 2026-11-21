@@ -144,6 +144,19 @@ async function processNotificationQueue() {
   }
 
   const job = notificationQueue[0];
+  if (job.subject.indexOf("New RYZE order ") !== 0) {
+    notificationQueue.shift();
+    try {
+      persistNotificationQueue();
+    } catch (error) {
+      notificationQueue.unshift(job);
+      throw error;
+    }
+    console.log("Removed non-owner email from the retry queue.");
+    scheduleNotificationProcessing(0);
+    return;
+  }
+
   const delay = job.nextAttemptAt - Date.now();
   if (delay > 0) {
     scheduleNotificationProcessing(delay);
@@ -155,9 +168,7 @@ async function processNotificationQueue() {
     const recipient = job.recipient ||
       (job.subject.indexOf("New RYZE order ") === 0
         ? "owner"
-        : job.subject.indexOf("We received your RYZE order ") === 0
-          ? "customer"
-          : job.to);
+        : job.to);
     const sent = await sendEmail({
       to: job.subject.indexOf("New RYZE order ") === 0 ? ADMIN_EMAIL : job.to,
       subject: job.subject,
@@ -308,24 +319,6 @@ function ownerOrderEmail(order) {
   return emailShell("New order received", body);
 }
 
-function customerOrderEmail(order) {
-  const body =
-    "<p>Hi " + escapeHtml(order.name) + ",</p>" +
-    "<p>Thank you for shopping with RYZE.</p>" +
-    "<p>We have received your order. We are preparing it now and we will update you when it ships.</p>" +
-    "<h3>Order Details</h3>" +
-    '<p style="line-height:1.7;font-size:14px">' +
-    "<b>Order number:</b> #" + escapeHtml(order.id) + "<br>" +
-    "<b>Phone number:</b> " + escapeHtml(order.phone) + "<br>" +
-    "<b>Payment method:</b> " + escapeHtml(order.payment) + "</p>" +
-    itemsTable(order) +
-    '<p style="margin-top:14px"><b>Delivery address:</b> ' +
-    escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
-    "<p>Thank you for supporting 3 brothers building something real.<br>Team RYZE</p>";
-
-  return emailShell("We received your RYZE order ✅", body);
-}
-
 // ------------------------------------------------------------------
 //  Routes
 // ------------------------------------------------------------------
@@ -357,7 +350,7 @@ app.post("/api/orders", async function (req, res) {
   const city = cleanText(body.city, 60);
   const notes = cleanText(body.notes, 300);
   if (email === "") {
-    return res.status(400).json({ ok: false, message: "Please enter your email address for the order confirmation." });
+    return res.status(400).json({ ok: false, message: "Please enter your email address for order contact details." });
   }
   if (body.payment !== "Bank transfer") {
     return res.status(400).json({ ok: false, message: "Bank transfer is the only available payment method." });
@@ -433,61 +426,28 @@ app.post("/api/orders", async function (req, res) {
 
   console.log("New order " + order.id + " - " + formatPrice(order.total) + " - " + order.name + " (" + order.phone + ")");
 
-  const notificationEmails = [
-    {
-      recipient: "customer",
-      to: email,
-      subject: "We received your RYZE order ✅",
-      html: customerOrderEmail(order),
-      replyTo: BRAND.email,
-    },
-    {
-      recipient: "owner",
-      to: ADMIN_EMAIL,
-      subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
-      html: ownerOrderEmail(order),
-      replyTo: email,
-    },
-  ];
-  const deliveryResults = await Promise.all(notificationEmails.map(async function (notification) {
-    const sent = await sendEmail({
-      to: notification.to,
-      subject: notification.subject,
-      html: notification.html,
-      replyTo: notification.replyTo,
-    }, notification.recipient);
-    return { notification: notification, sent: sent };
-  }));
-  const failedNotifications = deliveryResults
-    .filter(function (result) {
-      return !result.sent;
-    })
-    .map(function (result) {
-      return result.notification;
-    });
-  let emailQueued = false;
-  if (failedNotifications.length > 0) {
+  const ownerNotification = {
+    recipient: "owner",
+    to: ADMIN_EMAIL,
+    subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
+    html: ownerOrderEmail(order),
+    replyTo: email,
+  };
+  const ownerEmailSent = await sendEmail({
+    to: ownerNotification.to,
+    subject: ownerNotification.subject,
+    html: ownerNotification.html,
+    replyTo: ownerNotification.replyTo,
+  }, ownerNotification.recipient);
+  if (!ownerEmailSent) {
     try {
-      enqueueEmails(failedNotifications);
-      emailQueued = true;
-      console.error("Failed order emails queued for retry: " +
-        failedNotifications.map(function (notification) { return notification.recipient; }).join(", "));
+      enqueueEmails([ownerNotification]);
+      console.error("Owner order email queued for retry.");
     } catch (error) {
       console.error("Email retry queue failed: " + error.message, error);
     }
   }
-  const emailResults = {
-    customerSent: deliveryResults[0].sent,
-    ownerSent: deliveryResults[1].sent,
-  };
-  const emailDeliveryConfigured = transporter !== null;
-  res.json({
-    ok: true,
-    emailQueued: emailQueued,
-    emailDeliveryConfigured: emailDeliveryConfigured,
-    emailResults: emailResults,
-    order: order,
-  });
+  res.json({ ok: true, order: order });
 });
 app.post("/api/contact", async function (req, res) {
   if (tooManyRequests(req.ip)) {

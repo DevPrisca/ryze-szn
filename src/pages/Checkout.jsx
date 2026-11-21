@@ -44,7 +44,7 @@ function Checkout() {
   function findProblem() {
     if (form.name.trim().length < 2) return "Please enter your full name.";
     if (isValidPhone(form.phone) === false) return "Please enter a valid Nigerian phone number, e.g. 0801 234 5678.";
-    if (form.email.trim() === "") return "Please enter your email address for the order confirmation.";
+    if (form.email.trim() === "") return "Please enter your email address for order contact details.";
     if (isValidEmail(form.email.trim()) === false) return "That email address does not look right.";
     if (form.address.trim().length < 5) return "Please enter your delivery address.";
     if (form.city.trim().length < 2) return "Please enter your city.";
@@ -76,17 +76,10 @@ function Checkout() {
       }
 
       cart.clearCart();
-      const emailResults = result.emailResults || {};
-      const emailStatus = "Customer email: " + (emailResults.customerSent ? "sent" : "failed") +
-        "; owner email: " + (emailResults.ownerSent ? "sent" : "failed") +
-        (result.emailQueued ? ". Failed email(s) queued for retry." : "");
-      toast.showToast("Order placed. " + emailStatus, emailResults.customerSent && emailResults.ownerSent ? "success" : "error");
+      toast.showToast("Order placed.", "success");
       navigate("/order-success", {
         state: {
           order: result.order,
-          emailQueued: result.emailQueued,
-          emailDeliveryConfigured: result.emailDeliveryConfigured,
-          emailResults: emailResults,
         },
       });
     } catch (error) {
@@ -137,7 +130,7 @@ function Checkout() {
             <div className="form-grid">
               <div className="field"><label htmlFor="name">Full name</label><input id="name" name="name" type="text" value={form.name} onChange={handleChange} autoComplete="name" placeholder="Your full name" /></div>
               <div className="field"><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} autoComplete="tel" placeholder="0801 234 5678" /></div>
-              <div className="field full"><label htmlFor="email">Email (for your order confirmation)</label><input id="email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" placeholder="you@gmail.com" required /></div>
+              <div className="field full"><label htmlFor="email">Email address</label><input id="email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" placeholder="you@gmail.com" required /></div>
               <div className="field full"><label htmlFor="address">Delivery address</label><input id="address" name="address" type="text" value={form.address} onChange={handleChange} autoComplete="street-address" placeholder="House number, street, area" /></div>
               <div className="field"><label htmlFor="city">City / State</label><input id="city" name="city" type="text" value={form.city} onChange={handleChange} placeholder="e.g. Lagos" /></div>
               <div className="field"><label htmlFor="payment">Payment method</label><input id="payment" name="payment" value={form.payment} readOnly /></div>
