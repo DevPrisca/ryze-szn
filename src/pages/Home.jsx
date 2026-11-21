@@ -19,8 +19,7 @@ function Home() {
               <span className="hero-line">The Ordinary</span>
             </h1>
             <p className="hero-sub">
-              Heavyweight streetwear with a kite in its heart. Cut for comfort,
-              coloured for attention, made for people who refuse to stay grounded.
+              Born from three brothers. Made for those who refuse to stay average.
             </p>
             <div className="hero-buttons">
               <Link to="/shop" className="btn btn-red">
@@ -156,15 +155,12 @@ function Home() {
         <div className="container statement">
           <Reveal>
             <span className="eyebrow">The idea</span>
-            <h2>
-              A kite only <span className="red">rises</span> against the wind.
-            </h2>
+            <h2>BUILT BY THREE BROTHERS. MADE TO RISE.</h2>
           </Reveal>
           <Reveal delay={150}>
             <p>
-              RYZE was born from a simple thought: the things that push against
-              us are the things that lift us higher. Every piece we make carries
-              that kite, a reminder to keep climbing.
+              RYZE was born from pressure, struggle and persistence. Every piece we make carries
+              that story, a reminder that the hardest moments make you shine.
             </p>
             <Link to="/about" className="btn btn-outline">
               Read our story

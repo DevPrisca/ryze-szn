@@ -32,6 +32,12 @@ export const BRAND = {
   freeDeliveryOver: 80000,
 };
 
+export const BANK_TRANSFER = {
+  accountNumber: "1814926436",
+  accountName: "Atere Daniel Obuname",
+  bank: "Providus Bank",
+};
+
 export function formatPrice(amount) {
   return "₦" + Number(amount).toLocaleString("en-NG");
 }

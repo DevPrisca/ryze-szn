@@ -27,14 +27,19 @@ function About() {
               It only flies <span className="red">against</span> the wind.
             </h2>
             <p>
-              A kite does not rise with the wind behind it. It rises because of the resistance, the
-              tension on the string, the push from the opposite side. That is the story of every person
-              building something from nothing.
+              Three brothers. One sewing machine. And a stubborn belief that Nigerian streetwear
+              could stand next to any brand in the world.
             </p>
             <p>
-              RYZE started with a few sketches, one sewing machine and a stubborn belief that Nigerian
-              streetwear could stand next to any brand in the world. Every tee, hoodie and cap we make
-              carries the kite as a quiet reminder: keep climbing.
+              RYZE started with a few sketches in a small room, three brothers pulling in the same
+              direction — one drawing, one sewing, one pushing it to the world. No money, no
+              connections, just tension, pressure, and each other.
+            </p>
+            <p>
+              That is the story of every person building something from nothing. You don't rise
+              because life is easy. You rise because of the resistance, the hard days, the people who
+              doubted you — and the brothers beside you who refuse to let you fall. Every tee, hoodie
+              and cap we make carries that story as a quiet reminder: keep climbing.
             </p>
           </Reveal>
         </div>
@@ -104,8 +109,8 @@ function About() {
             </Reveal>
             <Reveal>
               <div className="time-item">
-                <strong>First 50 tees</strong>
-                <p>A tiny run, sold out within days by word of mouth and Instagram.</p>
+                <strong>THE FIRST HOODIE DROP</strong>
+                <p>We reinvested everything. One hoodie, made by three brothers, gone before the weekend ended.</p>
               </div>
             </Reveal>
             <Reveal>

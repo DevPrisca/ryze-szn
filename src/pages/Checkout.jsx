@@ -4,7 +4,7 @@ import PageHero from "../components/PageHero.jsx";
 import { getProductById } from "../data/products.js";
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { BRAND, formatPrice } from "../config.js";
+import { BANK_TRANSFER, BRAND, formatPrice } from "../config.js";
 import "./Cart.css";
 import "./Checkout.css";
 
@@ -135,6 +135,16 @@ function Checkout() {
               <div className="field full"><label htmlFor="notes">Notes (optional)</label><textarea id="notes" name="notes" value={form.notes} onChange={handleChange} placeholder="Landmark, delivery time, anything we should know" /></div>
               <div className="hp-field" aria-hidden="true"><label htmlFor="website">Website</label><input id="website" name="website" type="text" value={form.website} onChange={handleChange} tabIndex="-1" autoComplete="off" /></div>
             </div>
+            {form.payment === "Bank transfer" && (
+              <div className="fallback-box">
+                <p>Bank transfer details</p>
+                <p>
+                  <strong>Bank:</strong> {BANK_TRANSFER.bank}<br />
+                  <strong>Account name:</strong> {BANK_TRANSFER.accountName}<br />
+                  <strong>Account number:</strong> {BANK_TRANSFER.accountNumber}
+                </p>
+              </div>
+            )}
             <button type="submit" className="btn btn-red btn-block place-btn" disabled={sending}>{sendButtonText}</button>
             <p className="secure-note">Questions? Call <a href={"tel:" + BRAND.phoneLink}>{BRAND.phone}</a></p>
           </form>

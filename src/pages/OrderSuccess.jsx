@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { KiteMark } from "../components/Logo.jsx";
-import { BRAND, formatPrice, whatsappLink } from "../config.js";
+import { BANK_TRANSFER, BRAND, formatPrice, whatsappLink } from "../config.js";
 import "./OrderSuccess.css";
 
 function OrderSuccess() {
@@ -50,9 +50,14 @@ function OrderSuccess() {
   let paymentHelp = null;
   if (order.payment === "Bank transfer") {
     paymentHelp = (
-      <p className="success-email">
-        You chose bank transfer. We will send you our account details when we call to confirm.
-      </p>
+      <div className="bank-transfer-details">
+        <p>You chose bank transfer. Please use these account details:</p>
+        <p>
+          <strong>Bank:</strong> {BANK_TRANSFER.bank}<br />
+          <strong>Account name:</strong> {BANK_TRANSFER.accountName}<br />
+          <strong>Account number:</strong> {BANK_TRANSFER.accountNumber}
+        </p>
+      </div>
     );
   }
 

@@ -34,6 +34,18 @@ body {
   overflow-x: hidden;
 }
 
+.bank-transfer-details {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--coal);
+  text-align: left;
+}
+
+.bank-transfer-details p + p {
+  margin-top: 8px;
+}
+
 h1,
 h2,
 h3,
