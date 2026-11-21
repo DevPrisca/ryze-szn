@@ -6,6 +6,7 @@ import "./OrderSuccess.css";
 
 function OrderSuccess() {
   const location = useLocation();
+  const emailResults = location.state && location.state.emailResults ? location.state.emailResults : {};
 
   let order = null;
   if (location.state && location.state.order) {
@@ -40,11 +41,21 @@ function OrderSuccess() {
 
   let emailLine = null;
   if (order.email) {
-    if (location.state.emailQueued && location.state.emailDeliveryConfigured) {
-      emailLine = <p className="success-email">Your order confirmation is queued for {order.email}.</p>;
-    } else {
-      emailLine = <p className="success-email">Your order is received, but email delivery is pending setup. Please save your order number.</p>;
-    }
+    const customerStatus = emailResults.customerSent
+      ? "sent to " + order.email
+      : location.state.emailQueued
+        ? "failed; retry queued"
+        : "failed";
+    const ownerStatus = emailResults.ownerSent
+      ? "sent"
+      : location.state.emailQueued
+        ? "failed; retry queued"
+        : "failed";
+    emailLine = (
+      <p className="success-email">
+        {"Customer confirmation: " + customerStatus + ". Owner notification: " + ownerStatus + "."}
+      </p>
+    );
   }
 
   let deliveryText = formatPrice(order.delivery);

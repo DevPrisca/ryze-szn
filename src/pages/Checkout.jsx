@@ -76,18 +76,17 @@ function Checkout() {
       }
 
       cart.clearCart();
-      if (result.emailQueued && result.emailDeliveryConfigured) {
-        toast.showToast("Order placed. Confirmation email queued for " + form.email.trim() + ".", "success");
-      } else if (result.emailQueued) {
-        toast.showToast("Order placed, but Gmail email delivery needs configuration.", "error");
-      } else {
-        toast.showToast("Order received, but the email notification could not be queued. Please contact us.", "error");
-      }
+      const emailResults = result.emailResults || {};
+      const emailStatus = "Customer email: " + (emailResults.customerSent ? "sent" : "failed") +
+        "; owner email: " + (emailResults.ownerSent ? "sent" : "failed") +
+        (result.emailQueued ? ". Failed email(s) queued for retry." : "");
+      toast.showToast("Order placed. " + emailStatus, emailResults.customerSent && emailResults.ownerSent ? "success" : "error");
       navigate("/order-success", {
         state: {
           order: result.order,
           emailQueued: result.emailQueued,
           emailDeliveryConfigured: result.emailDeliveryConfigured,
+          emailResults: emailResults,
         },
       });
     } catch (error) {

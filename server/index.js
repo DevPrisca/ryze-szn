@@ -14,7 +14,7 @@ const DATA_DIRECTORY = path.resolve(process.env.DATA_DIR || __dirname);
 fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
 const ORDERS_FILE = path.join(DATA_DIRECTORY, "orders.json");
 const NOTIFICATION_QUEUE_FILE = path.join(DATA_DIRECTORY, "mail-queue.json");
-const ORDER_EMAIL_TO = BRAND.email;
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").trim();
 const DIST_FOLDER = path.join(__dirname, "..", "dist");
 const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
@@ -23,33 +23,36 @@ app.use(cors());
 app.use(express.json({ limit: "500kb" }));
 
 // ------------------------------------------------------------------
-//  Gmail setup (works only when GMAIL_USER and GMAIL_APP_PASSWORD are set)
+//  Gmail setup requires the sender, App Password, and owner recipient.
 // ------------------------------------------------------------------
 let transporter = null;
+const gmailUser = (process.env.GMAIL_USER || "").trim();
 const gmailAppPassword = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
 
-if (process.env.GMAIL_USER && gmailAppPassword.length === 16) {
+if (gmailUser && gmailAppPassword.length === 16 && isValidEmail(ADMIN_EMAIL)) {
   transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    port: 465,
+    secure: true,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
     auth: {
-      user: process.env.GMAIL_USER,
+      user: gmailUser,
       pass: gmailAppPassword,
     },
   });
-  console.log("Gmail order notifications: ON (" + process.env.GMAIL_USER + ")");
-  console.log("Gmail contact notifications: ON (" + process.env.GMAIL_USER + ")");
+  console.log("Gmail order notifications: ON (" + gmailUser + " -> " + ADMIN_EMAIL + ")");
+  console.log("Gmail contact notifications: ON (" + gmailUser + " -> " + ADMIN_EMAIL + ")");
 } else {
   if (process.env.GMAIL_APP_PASSWORD && gmailAppPassword.length !== 16) {
     console.error("GMAIL_APP_PASSWORD must be exactly 16 characters after removing whitespace.");
   }
-  console.log("Gmail order notifications: OFF (add GMAIL_USER and a 16-character GMAIL_APP_PASSWORD to .env)");
-  console.log("Gmail contact notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
+  if (!isValidEmail(ADMIN_EMAIL)) {
+    console.error("ADMIN_EMAIL must be a valid email address.");
+  }
+  console.log("Gmail order notifications: OFF (set GMAIL_USER, GMAIL_APP_PASSWORD, and ADMIN_EMAIL)");
+  console.log("Gmail contact notifications: OFF (set GMAIL_USER, GMAIL_APP_PASSWORD, and ADMIN_EMAIL)");
 }
 
 let notificationQueue = [];
@@ -61,19 +64,21 @@ if (fs.existsSync(NOTIFICATION_QUEUE_FILE)) {
   notificationQueue = savedQueue;
 }
 
-async function sendEmail(options) {
+async function sendEmail(options, recipientLabel) {
   if (transporter === null) {
+    console.error("Email failed: Gmail SMTP is not configured for " + (recipientLabel || options.to) + ".");
     return false;
   }
 
   try {
     await transporter.sendMail({
-      from: '"' + BRAND.name + '" <' + process.env.GMAIL_USER + ">",
+      from: '"' + BRAND.name + '" <' + gmailUser + ">",
       ...options,
     });
+    console.log("Email sent to " + (recipientLabel || options.to) + ": " + options.to);
     return true;
   } catch (error) {
-    console.error("Gmail SMTP send failed:", error);
+    console.error("Email failed: " + (recipientLabel || options.to) + ": " + error.message, error);
     return false;
   }
 }
@@ -113,6 +118,7 @@ function enqueueEmails(emails) {
       subject: email.subject,
       html: email.html,
       replyTo: email.replyTo || null,
+      recipient: email.recipient || null,
       attempts: 0,
       nextAttemptAt: Date.now(),
     };
@@ -146,12 +152,18 @@ async function processNotificationQueue() {
 
   processingNotifications = true;
   try {
+    const recipient = job.recipient ||
+      (job.subject.indexOf("New RYZE order ") === 0
+        ? "owner"
+        : job.subject.indexOf("We received your RYZE order ") === 0
+          ? "customer"
+          : job.to);
     const sent = await sendEmail({
-      to: job.subject.indexOf("New RYZE order ") === 0 ? ORDER_EMAIL_TO : job.to,
+      to: job.subject.indexOf("New RYZE order ") === 0 ? ADMIN_EMAIL : job.to,
       subject: job.subject,
       html: job.html,
       replyTo: job.replyTo || undefined,
-    });
+    }, recipient);
 
     if (sent) {
       notificationQueue.shift();
@@ -321,7 +333,7 @@ app.get("/api/health", function (req, res) {
   res.json({
     ok: true,
     emailEnabled: transporter !== null,
-    emailTransport: "gmail-smtp-587",
+    emailTransport: "gmail-smtp-465",
     pendingEmailNotifications: notificationQueue.length,
   });
 });
@@ -421,32 +433,59 @@ app.post("/api/orders", async function (req, res) {
 
   console.log("New order " + order.id + " - " + formatPrice(order.total) + " - " + order.name + " (" + order.phone + ")");
 
-  const notificationEmails = [{
-    to: ORDER_EMAIL_TO,
-    subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
-    html: ownerOrderEmail(order),
-    replyTo: email || undefined,
-  }];
-  notificationEmails.push({
-    to: email,
-    subject: "We received your RYZE order ✅",
-    html: customerOrderEmail(order),
-    replyTo: BRAND.email,
-  });
-
+  const notificationEmails = [
+    {
+      recipient: "customer",
+      to: email,
+      subject: "We received your RYZE order ✅",
+      html: customerOrderEmail(order),
+      replyTo: BRAND.email,
+    },
+    {
+      recipient: "owner",
+      to: ADMIN_EMAIL,
+      subject: "New RYZE order " + order.id + " - " + formatPrice(order.total),
+      html: ownerOrderEmail(order),
+      replyTo: email,
+    },
+  ];
+  const deliveryResults = await Promise.all(notificationEmails.map(async function (notification) {
+    const sent = await sendEmail({
+      to: notification.to,
+      subject: notification.subject,
+      html: notification.html,
+      replyTo: notification.replyTo,
+    }, notification.recipient);
+    return { notification: notification, sent: sent };
+  }));
+  const failedNotifications = deliveryResults
+    .filter(function (result) {
+      return !result.sent;
+    })
+    .map(function (result) {
+      return result.notification;
+    });
   let emailQueued = false;
-  try {
-    enqueueEmails(notificationEmails);
-    emailQueued = notificationEmails.length > 0;
-  } catch (error) {
-    console.error("Could not queue order email:", error.message);
+  if (failedNotifications.length > 0) {
+    try {
+      enqueueEmails(failedNotifications);
+      emailQueued = true;
+      console.error("Failed order emails queued for retry: " +
+        failedNotifications.map(function (notification) { return notification.recipient; }).join(", "));
+    } catch (error) {
+      console.error("Email retry queue failed: " + error.message, error);
+    }
   }
-
+  const emailResults = {
+    customerSent: deliveryResults[0].sent,
+    ownerSent: deliveryResults[1].sent,
+  };
   const emailDeliveryConfigured = transporter !== null;
   res.json({
     ok: true,
     emailQueued: emailQueued,
     emailDeliveryConfigured: emailDeliveryConfigured,
+    emailResults: emailResults,
     order: order,
   });
 });
@@ -493,13 +532,8 @@ app.post("/api/contact", async function (req, res) {
 
   console.log("New message from " + name + " - " + subject);
 
-  const notificationEmail =
-    process.env.OWNER_EMAIL ||
-    process.env.GMAIL_USER ||
-    BRAND.email;
-
   const sent = await sendEmail({
-    to: notificationEmail,
+    to: ADMIN_EMAIL,
     subject: "RYZE website message: " + subject,
     html: html,
     replyTo: email || undefined,
