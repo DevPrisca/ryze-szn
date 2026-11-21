@@ -14,7 +14,6 @@ const DATA_DIRECTORY = path.resolve(process.env.DATA_DIR || __dirname);
 fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
 const ORDERS_FILE = path.join(DATA_DIRECTORY, "orders.json");
 const NOTIFICATION_QUEUE_FILE = path.join(DATA_DIRECTORY, "mail-queue.json");
-const ORDER_EMAIL_FROM = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const ORDER_EMAIL_TO = "makindepriscilla3@gmail.com";
 const DIST_FOLDER = path.join(__dirname, "..", "dist");
 const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
@@ -39,18 +38,11 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       pass: process.env.GMAIL_APP_PASSWORD.replace(/\s/g, ""),
     },
   });
+  console.log("Gmail order notifications: ON (" + process.env.GMAIL_USER + ")");
   console.log("Gmail contact notifications: ON (" + process.env.GMAIL_USER + ")");
 } else {
+  console.log("Gmail order notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
   console.log("Gmail contact notifications: OFF (add GMAIL_USER and GMAIL_APP_PASSWORD to .env)");
-}
-
-if (process.env.RESEND_API_KEY) {
-  console.log("Resend order notifications: ON (" + ORDER_EMAIL_TO + ")");
-} else {
-  console.log("Resend order notifications: OFF (add RESEND_API_KEY to .env)");
-}
-if (!process.env.RESEND_FROM_EMAIL) {
-  console.log("Set RESEND_FROM_EMAIL to a sender on a verified Resend domain to deliver order emails.");
 }
 
 let notificationQueue = [];
@@ -60,52 +52,6 @@ if (fs.existsSync(NOTIFICATION_QUEUE_FILE)) {
     throw new Error("The order notification queue file must contain an array.");
   }
   notificationQueue = savedQueue;
-}
-
-async function sendOrderEmail(options) {
-  if (!process.env.RESEND_API_KEY) {
-    console.error("Resend order email failed: RESEND_API_KEY is not configured.");
-    return false;
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(function () {
-    controller.abort();
-  }, 15000);
-
-  try {
-    const payload = {
-      from: ORDER_EMAIL_FROM,
-      to: [options.to],
-      subject: options.subject,
-      html: options.html,
-    };
-    if (options.replyTo) {
-      payload.reply_to = options.replyTo;
-    }
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + process.env.RESEND_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    const responseText = await response.text();
-    if (!response.ok) {
-      throw new Error("Resend returned HTTP " + response.status + ": " + responseText.slice(0, 500));
-    }
-
-    console.log("Resend accepted order email: " + options.subject);
-    return true;
-  } catch (error) {
-    console.error("Resend order email failed:", error.message);
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 async function sendEmail(options) {
@@ -179,7 +125,7 @@ async function processNotificationQueue() {
   if (processingNotifications || notificationQueue.length === 0) {
     return;
   }
-  if (!process.env.RESEND_API_KEY) {
+  if (transporter === null) {
     scheduleNotificationProcessing(3600000);
     return;
   }
@@ -193,7 +139,7 @@ async function processNotificationQueue() {
 
   processingNotifications = true;
   try {
-    const sent = await sendOrderEmail({
+    const sent = await sendEmail({
       to: job.to,
       subject: job.subject,
       html: job.html,
@@ -208,12 +154,12 @@ async function processNotificationQueue() {
         notificationQueue.unshift(job);
         throw error;
       }
-      console.log("Resend order notification sent: " + job.subject);
+      console.log("Gmail order notification sent: " + job.subject);
     } else {
       job.attempts += 1;
       job.nextAttemptAt = Date.now() + Math.min(60000 * (2 ** Math.min(job.attempts - 1, 6)), 3600000);
       persistNotificationQueue();
-      console.error("Resend order notification queued for retry: " + job.subject);
+      console.error("Gmail order notification queued for retry: " + job.subject);
     }
   } finally {
     processingNotifications = false;
@@ -349,6 +295,10 @@ function customerOrderEmail(order) {
     "<p>Thank you for shopping with RYZE.</p>" +
     "<p>We have received your order. We are preparing it now and we will update you when it ships.</p>" +
     "<h3>Order Details</h3>" +
+    '<p style="line-height:1.7;font-size:14px">' +
+    "<b>Order number:</b> #" + escapeHtml(order.id) + "<br>" +
+    "<b>Phone number:</b> " + escapeHtml(order.phone) + "<br>" +
+    "<b>Payment method:</b> " + escapeHtml(order.payment) + "</p>" +
     itemsTable(order) +
     '<p style="margin-top:14px"><b>Delivery address:</b> ' +
     escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
@@ -363,7 +313,7 @@ function customerOrderEmail(order) {
 app.get("/api/health", function (req, res) {
   res.json({
     ok: true,
-    emailEnabled: Boolean(process.env.RESEND_API_KEY),
+    emailEnabled: transporter !== null,
     pendingEmailNotifications: notificationQueue.length,
   });
 });
@@ -484,10 +434,7 @@ app.post("/api/orders", async function (req, res) {
     console.error("Could not queue order email:", error.message);
   }
 
-  const emailDeliveryConfigured = Boolean(
-    process.env.RESEND_API_KEY &&
-    process.env.RESEND_FROM_EMAIL
-  );
+  const emailDeliveryConfigured = transporter !== null;
   res.json({
     ok: true,
     emailQueued: emailQueued,

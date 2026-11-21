@@ -21,9 +21,5 @@ services:
         sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
       - key: OWNER_EMAIL
         sync: false

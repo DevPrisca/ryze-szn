@@ -79,7 +79,7 @@ function Checkout() {
       if (result.emailQueued && result.emailDeliveryConfigured) {
         toast.showToast("Order placed. Confirmation email queued for " + form.email.trim() + ".", "success");
       } else if (result.emailQueued) {
-        toast.showToast("Order placed, but email delivery needs Resend configuration.", "error");
+        toast.showToast("Order placed, but Gmail email delivery needs configuration.", "error");
       } else {
         toast.showToast("Order received, but the email notification could not be queued. Please contact us.", "error");
       }
