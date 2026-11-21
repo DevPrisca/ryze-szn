@@ -14,8 +14,8 @@ const DATA_DIRECTORY = path.resolve(process.env.DATA_DIR || __dirname);
 fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
 const ORDERS_FILE = path.join(DATA_DIRECTORY, "orders.json");
 const NOTIFICATION_QUEUE_FILE = path.join(DATA_DIRECTORY, "mail-queue.json");
-const ORDER_EMAIL_FROM = "onboarding@resend.dev";
-const ORDER_EMAIL_TO = "makindepriscilla5@gmail.com";
+const ORDER_EMAIL_FROM = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+const ORDER_EMAIL_TO = "makindepriscilla3@gmail.com";
 const DIST_FOLDER = path.join(__dirname, "..", "dist");
 const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
@@ -49,6 +49,9 @@ if (process.env.RESEND_API_KEY) {
 } else {
   console.log("Resend order notifications: OFF (add RESEND_API_KEY to .env)");
 }
+if (!process.env.RESEND_FROM_EMAIL) {
+  console.log("Set RESEND_FROM_EMAIL to a sender on a verified Resend domain to deliver order emails.");
+}
 
 let notificationQueue = [];
 if (fs.existsSync(NOTIFICATION_QUEUE_FILE)) {
@@ -73,7 +76,7 @@ async function sendOrderEmail(options) {
   try {
     const payload = {
       from: ORDER_EMAIL_FROM,
-      to: [ORDER_EMAIL_TO],
+      to: [options.to],
       subject: options.subject,
       html: options.html,
     };
@@ -182,14 +185,6 @@ async function processNotificationQueue() {
   }
 
   const job = notificationQueue[0];
-  if (job.subject.indexOf("Your RYZE order ") === 0) {
-    notificationQueue.shift();
-    persistNotificationQueue();
-    console.log("Discarded queued customer confirmation email: " + job.subject);
-    scheduleNotificationProcessing(0);
-    return;
-  }
-
   const delay = job.nextAttemptAt - Date.now();
   if (delay > 0) {
     scheduleNotificationProcessing(delay);
@@ -199,6 +194,7 @@ async function processNotificationQueue() {
   processingNotifications = true;
   try {
     const sent = await sendOrderEmail({
+      to: job.to,
       subject: job.subject,
       html: job.html,
       replyTo: job.replyTo || undefined,
@@ -347,6 +343,20 @@ function ownerOrderEmail(order) {
   return emailShell("New order received", body);
 }
 
+function customerOrderEmail(order) {
+  const body =
+    "<p>Hi " + escapeHtml(order.name) + ",</p>" +
+    "<p>Thank you for shopping with RYZE.</p>" +
+    "<p>We have received your order. We are preparing it now and we will update you when it ships.</p>" +
+    "<h3>Order Details</h3>" +
+    itemsTable(order) +
+    '<p style="margin-top:14px"><b>Delivery address:</b> ' +
+    escapeHtml(order.address) + ", " + escapeHtml(order.city) + "</p>" +
+    "<p>Thank you for supporting 3 brothers building something real.<br>Team RYZE</p>";
+
+  return emailShell("We received your RYZE order ✅", body);
+}
+
 // ------------------------------------------------------------------
 //  Routes
 // ------------------------------------------------------------------
@@ -376,7 +386,13 @@ app.post("/api/orders", async function (req, res) {
   const address = cleanText(body.address, 200);
   const city = cleanText(body.city, 60);
   const notes = cleanText(body.notes, 300);
-  const payment = body.payment === "Bank transfer" ? "Bank transfer" : "Pay on delivery";
+  if (email === "") {
+    return res.status(400).json({ ok: false, message: "Please enter your email address for the order confirmation." });
+  }
+  if (body.payment !== "Bank transfer") {
+    return res.status(400).json({ ok: false, message: "Bank transfer is the only available payment method." });
+  }
+  const payment = "Bank transfer";
 
   if (name.length < 2) {
     return res.status(400).json({ ok: false, message: "Please enter your full name." });
@@ -453,6 +469,12 @@ app.post("/api/orders", async function (req, res) {
     html: ownerOrderEmail(order),
     replyTo: email || undefined,
   }];
+  notificationEmails.push({
+    to: email,
+    subject: "We received your RYZE order ✅",
+    html: customerOrderEmail(order),
+    replyTo: BRAND.email,
+  });
 
   let emailQueued = false;
   try {
@@ -462,7 +484,16 @@ app.post("/api/orders", async function (req, res) {
     console.error("Could not queue order email:", error.message);
   }
 
-  res.json({ ok: true, emailQueued: emailQueued, order: order });
+  const emailDeliveryConfigured = Boolean(
+    process.env.RESEND_API_KEY &&
+    process.env.RESEND_FROM_EMAIL
+  );
+  res.json({
+    ok: true,
+    emailQueued: emailQueued,
+    emailDeliveryConfigured: emailDeliveryConfigured,
+    order: order,
+  });
 });
 app.post("/api/contact", async function (req, res) {
   if (tooManyRequests(req.ip)) {

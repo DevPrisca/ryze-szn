@@ -46,6 +46,22 @@ body {
   margin-top: 8px;
 }
 
+.bank-account-number {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.copy-account-btn {
+  margin-top: 12px;
+}
+
+.bank-transfer-copy-status,
+.bank-transfer-reference {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 h1,
 h2,
 h3,

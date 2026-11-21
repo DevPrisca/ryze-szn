@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import BankTransferDetails from "../components/BankTransferDetails.jsx";
 import PageHero from "../components/PageHero.jsx";
 import { getProductById } from "../data/products.js";
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { BANK_TRANSFER, BRAND, formatPrice } from "../config.js";
+import { BRAND, formatPrice } from "../config.js";
 import "./Cart.css";
 import "./Checkout.css";
 
@@ -28,7 +29,7 @@ function Checkout() {
     email: "",
     address: "",
     city: "",
-    payment: "Pay on delivery",
+    payment: "Bank transfer",
     notes: "",
     website: "",
   });
@@ -43,7 +44,8 @@ function Checkout() {
   function findProblem() {
     if (form.name.trim().length < 2) return "Please enter your full name.";
     if (isValidPhone(form.phone) === false) return "Please enter a valid Nigerian phone number, e.g. 0801 234 5678.";
-    if (form.email.trim() !== "" && isValidEmail(form.email.trim()) === false) return "That email address does not look right.";
+    if (form.email.trim() === "") return "Please enter your email address for the order confirmation.";
+    if (isValidEmail(form.email.trim()) === false) return "That email address does not look right.";
     if (form.address.trim().length < 5) return "Please enter your delivery address.";
     if (form.city.trim().length < 2) return "Please enter your city.";
     return "";
@@ -74,12 +76,20 @@ function Checkout() {
       }
 
       cart.clearCart();
-      if (result.emailQueued) {
-        toast.showToast("Order placed. Email notification is queued and will retry automatically.", "success");
+      if (result.emailQueued && result.emailDeliveryConfigured) {
+        toast.showToast("Order placed. Confirmation email queued for " + form.email.trim() + ".", "success");
+      } else if (result.emailQueued) {
+        toast.showToast("Order placed, but email delivery needs Resend configuration.", "error");
       } else {
         toast.showToast("Order received, but the email notification could not be queued. Please contact us.", "error");
       }
-      navigate("/order-success", { state: { order: result.order } });
+      navigate("/order-success", {
+        state: {
+          order: result.order,
+          emailQueued: result.emailQueued,
+          emailDeliveryConfigured: result.emailDeliveryConfigured,
+        },
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "The order service is unavailable.";
       toast.showToast("Could not place your order: " + errorMessage, "error");
@@ -128,23 +138,14 @@ function Checkout() {
             <div className="form-grid">
               <div className="field"><label htmlFor="name">Full name</label><input id="name" name="name" type="text" value={form.name} onChange={handleChange} autoComplete="name" placeholder="Your full name" /></div>
               <div className="field"><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} autoComplete="tel" placeholder="0801 234 5678" /></div>
-              <div className="field full"><label htmlFor="email">Email (for your order confirmation)</label><input id="email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" placeholder="you@gmail.com (optional)" /></div>
+              <div className="field full"><label htmlFor="email">Email (for your order confirmation)</label><input id="email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" placeholder="you@gmail.com" required /></div>
               <div className="field full"><label htmlFor="address">Delivery address</label><input id="address" name="address" type="text" value={form.address} onChange={handleChange} autoComplete="street-address" placeholder="House number, street, area" /></div>
               <div className="field"><label htmlFor="city">City / State</label><input id="city" name="city" type="text" value={form.city} onChange={handleChange} placeholder="e.g. Lagos" /></div>
-              <div className="field"><label htmlFor="payment">Payment method</label><select id="payment" name="payment" value={form.payment} onChange={handleChange}><option>Pay on delivery</option><option>Bank transfer</option></select></div>
+              <div className="field"><label htmlFor="payment">Payment method</label><input id="payment" name="payment" value={form.payment} readOnly /></div>
               <div className="field full"><label htmlFor="notes">Notes (optional)</label><textarea id="notes" name="notes" value={form.notes} onChange={handleChange} placeholder="Landmark, delivery time, anything we should know" /></div>
               <div className="hp-field" aria-hidden="true"><label htmlFor="website">Website</label><input id="website" name="website" type="text" value={form.website} onChange={handleChange} tabIndex="-1" autoComplete="off" /></div>
             </div>
-            {form.payment === "Bank transfer" && (
-              <div className="fallback-box">
-                <p>Bank transfer details</p>
-                <p>
-                  <strong>Bank:</strong> {BANK_TRANSFER.bank}<br />
-                  <strong>Account name:</strong> {BANK_TRANSFER.accountName}<br />
-                  <strong>Account number:</strong> {BANK_TRANSFER.accountNumber}
-                </p>
-              </div>
-            )}
+            <BankTransferDetails amount={cart.total} />
             <button type="submit" className="btn btn-red btn-block place-btn" disabled={sending}>{sendButtonText}</button>
             <p className="secure-note">Questions? Call <a href={"tel:" + BRAND.phoneLink}>{BRAND.phone}</a></p>
           </form>

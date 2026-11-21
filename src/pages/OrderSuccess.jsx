@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
+import BankTransferDetails from "../components/BankTransferDetails.jsx";
 import { KiteMark } from "../components/Logo.jsx";
-import { BANK_TRANSFER, BRAND, formatPrice, whatsappLink } from "../config.js";
+import { BRAND, formatPrice, whatsappLink } from "../config.js";
 import "./OrderSuccess.css";
 
 function OrderSuccess() {
@@ -39,7 +40,11 @@ function OrderSuccess() {
 
   let emailLine = null;
   if (order.email) {
-    emailLine = <p className="success-email">A confirmation email is on its way to {order.email}.</p>;
+    if (location.state.emailQueued && location.state.emailDeliveryConfigured) {
+      emailLine = <p className="success-email">Your order confirmation is queued for {order.email}.</p>;
+    } else {
+      emailLine = <p className="success-email">Your order is received, but email delivery is pending setup. Please save your order number.</p>;
+    }
   }
 
   let deliveryText = formatPrice(order.delivery);
@@ -49,19 +54,11 @@ function OrderSuccess() {
 
   let paymentHelp = null;
   if (order.payment === "Bank transfer") {
-    paymentHelp = (
-      <div className="bank-transfer-details">
-        <p>You chose bank transfer. Please use these account details:</p>
-        <p>
-          <strong>Bank:</strong> {BANK_TRANSFER.bank}<br />
-          <strong>Account name:</strong> {BANK_TRANSFER.accountName}<br />
-          <strong>Account number:</strong> {BANK_TRANSFER.accountNumber}
-        </p>
-      </div>
-    );
+    paymentHelp = <BankTransferDetails amount={order.total} orderId={order.id} />;
   }
 
-  const whatsappMessage = "Hello RYZE, I just placed order " + order.id + ".";
+  const whatsappMessage =
+    "Hello RYZE, I have made a bank transfer for order " + order.id + ". I will send the receipt here.";
 
   return (
     <section className="container success-wrap">
@@ -102,7 +99,7 @@ function OrderSuccess() {
           Keep shopping
         </Link>
         <a href={whatsappLink(whatsappMessage)} target="_blank" rel="noreferrer" className="btn btn-whatsapp">
-          Chat on WhatsApp
+          Send transfer proof on WhatsApp
         </a>
       </div>
 
