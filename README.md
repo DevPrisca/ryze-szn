@@ -24,11 +24,11 @@ the dev script selects an available port and configures the website proxy to use
 ## 2. Gmail notifications
 
 Order notifications are sent with Gmail SMTP using Nodemailer. Each order
-immediately sends one full notification to `ADMIN_EMAIL`; no order email is
-sent to the customer. The owner message includes the order items, sizes,
-quantities, total, delivery address, customer email, phone number, and payment
-method. Failed owner messages are saved to a local queue and retried after
-temporary mail or network errors.
+immediately sends a full notification to `ADMIN_EMAIL` and an order
+confirmation to the email entered at checkout. Both include the order items,
+sizes, quantities, total, delivery address, phone number, and payment method.
+Failed messages are saved to a local queue and retried after temporary mail or
+network errors.
 SMTP uses `smtp.gmail.com:465` with TLS. The App Password must be valid for the
 sending Gmail account; whitespace is removed automatically. The startup `ON`
 message means credentials are configured, not that Gmail has authenticated.

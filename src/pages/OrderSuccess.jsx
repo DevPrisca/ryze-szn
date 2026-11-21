@@ -6,6 +6,7 @@ import "./OrderSuccess.css";
 
 function OrderSuccess() {
   const location = useLocation();
+  const emailResults = location.state && location.state.emailResults ? location.state.emailResults : {};
 
   let order = null;
   if (location.state && location.state.order) {
@@ -38,6 +39,19 @@ function OrderSuccess() {
     );
   }
 
+  let emailLine = null;
+  if (order.email) {
+    if (emailResults.customerSent) {
+      emailLine = <p className="success-email">Your order confirmation was sent to {order.email}.</p>;
+    } else if (emailResults.customerQueued) {
+      emailLine = <p className="success-email">Your order confirmation is queued for retry.</p>;
+    } else if (!location.state.emailDeliveryConfigured) {
+      emailLine = <p className="success-email">Your order is received, but email delivery needs configuration.</p>;
+    } else {
+      emailLine = <p className="success-email">Your order is received, but the confirmation email could not be sent.</p>;
+    }
+  }
+
   let deliveryText = formatPrice(order.delivery);
   if (order.delivery === 0) {
     deliveryText = "FREE";
@@ -63,6 +77,7 @@ function OrderSuccess() {
       <p className="success-lead">
         Thank you, {order.name.split(" ")[0]}. We will call <b>{order.phone}</b> shortly to confirm your delivery.
       </p>
+      {emailLine}
       {paymentHelp}
 
       <div className="success-card">
