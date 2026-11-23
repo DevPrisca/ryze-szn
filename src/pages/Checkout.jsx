@@ -72,7 +72,13 @@ function Checkout() {
       if (!response.ok) {
         throw new Error(result.message || "The server could not place your order.");
       }
-      if (!result.order) {
+      if (
+        !result ||
+        result.ok !== true ||
+        !result.order ||
+        typeof result.order.id !== "string" ||
+        result.order.id === "RYZ-OK"
+      ) {
         throw new Error("The server did not confirm your order.");
       }
 

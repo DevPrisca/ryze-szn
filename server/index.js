@@ -20,6 +20,12 @@ const PORT = Number(process.env.API_PORT || process.env.PORT || 5000);
 
 const app = express();
 app.use(cors());
+app.use(function logOrderRequests(req, res, next) {
+  if (req.method === "POST" && req.path === "/api/orders") {
+    console.log("POST /api/orders received (origin: " + (req.get("origin") || "unknown") + ")");
+  }
+  next();
+});
 app.use(express.json({ limit: "500kb" }));
 
 // ------------------------------------------------------------------
