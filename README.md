@@ -53,13 +53,22 @@ Customers must provide an email address to receive their order confirmation.
 
 Never share the `.env` file or put it on GitHub (it is already in `.gitignore`).
 
-## 3. Change contact details, social profiles, and delivery fee
+## 3. Render deployment
+
+The existing `ryze-szn` Render web service runs the Node API. Create the
+`ryze-szn-frontend` static site from `render-frontend.yaml`; its build uses
+`VITE_API_URL=https://ryze-szn.onrender.com` for order and contact requests.
+Keep `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `ADMIN_EMAIL` only on the Node web
+service in Render; never commit their values to the repository. Do not sync
+the frontend Blueprint using `render.yaml`, which describes the existing backend.
+
+## 4. Change contact details, social profiles, and delivery fee
 
 Edit **`src/config.js`**. Set your phone numbers and WhatsApp numbers
 (digits only, with country code, e.g. `2348031234567`), email, and social profile
 URLs and handles.
 
-## 4. Add or edit products and photos
+## 5. Add or edit products and photos
 
 Edit **`src/data/products.js`**. To use real photos, put the pictures in the
 `public/images/` folder and set, for example, `image: "/images/kite-tee.jpg"`.
